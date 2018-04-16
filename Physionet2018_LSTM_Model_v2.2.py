@@ -4,7 +4,7 @@ This example is using the Physionet Challenge 2018 database of biometric signals
 Links:
     [Long Short Term Memory](http://deeplearning.cs.cmu.edu/pdfs/Hochreiter97_lstm.pdf)
     [Physionet Challenge 2018 Dataset](https://physionet.org/challenge/2018/).
-Author: Enrico Sanna - Unimarconi
+Author: Enrico Sanna - Unimarconi 2
 Project: hhttps://github.com/esanna-unimarconi/TensorflowSignalProcessing/
 create-date:16/04/2018
 
