@@ -5,21 +5,26 @@ Links:
     [Long Short Term Memory](http://deeplearning.cs.cmu.edu/pdfs/Hochreiter97_lstm.pdf)
     [Physionet Challenge 2018 Dataset](https://physionet.org/challenge/2018/).
     https://medium.com/google-cloud/how-to-do-time-series-prediction-using-rnns-and-tensorflow-and-cloud-ml-engine-2ad2eeb189e8
-Author: Enrico Sanna - Unimarconi
-Project: hhttps://github.com/esanna-unimarconi/TensorflowSignalProcessing/
-create-date:16/04/2018
+@author: Enrico Sanna - Unimarconi
+@project: hhttps://github.com/esanna-unimarconi/TensorflowSignalProcessing/
+@create-date:16/04/2018
 
 """
-
+import warnings
+#remove future warnings - non funziona
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore",category=FutureWarning)
 import tensorflow as tf
 from tensorflow.contrib import rnn
 from Physionet2018_LSTM_DataLoading import *
 import numpy as np
 import pandas as pd
-import warnings
-with warnings.catch_warnings():
-    warnings.filterwarnings("ignore",category=FutureWarning)
+import datetime
 
+
+import os
+#remove warnings about system configuration
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 def rnn_data(data, time_steps, labels=False):
     """
@@ -63,8 +68,8 @@ def RNN(x, weights, biases):
 
 # Training Parameters
 learning_rate = 0.001
-training_steps =  1
-batch_size = 3000000
+training_steps =  10000
+batch_size = 1000
 display_step = 100
 
 # Network Parameters
@@ -73,6 +78,18 @@ timesteps = 1  # timesteps: depth (la profondità dei segnali precedenti passata
 num_hidden = 125  # hidden layer num of features
 num_classes = 3  # +1: Designates arousal regions; 0: Designates non-arousal regions;-1: Designates regions that will not be scored
 
+print("################################")
+print("###### SESSION PARAMETERS ######")
+print("################################")
+print("learning_rate",learning_rate)
+print("training_steps",training_steps)
+print("batch_size",batch_size)
+print("display_step",display_step)
+print("num_input",num_input)
+print("timesteps",timesteps)
+print("num_hidden",num_hidden)
+print("num_classes",num_classes)
+print("################################")
 # tf Graph input
 X = tf.placeholder("float", [None, timesteps, num_input])
 Y = tf.placeholder("float", [None, num_classes])
@@ -104,7 +121,8 @@ accuracy = tf.reduce_mean(tf.cast(correct_pred, tf.float32))
 init = tf.global_variables_initializer()
 
 dataLoader = Pysionet2018_LSTM_DataLoading("M:\\")
-
+dataLoader.next_record_directory()
+dataLoader.next_record_directory()
 # Start training
 with tf.Session() as sess:
     # Run the initializer
@@ -118,7 +136,7 @@ with tf.Session() as sess:
         batch_x = rnn_data(batch_x, timesteps, labels=False)
        # print("\n\ndopo rnn_data" + str(batch_x))
         #print("size dopo rnn_data" + str(batch_x.size))
-        print("size Y" + str(batch_y))
+        #print("size Y" + str(batch_y))
         #print("size Y" +str(batch_y.size))
         # Run optimization op (backprop)
         sess.run(train_op, feed_dict={X: batch_x, Y: batch_y})
@@ -126,18 +144,21 @@ with tf.Session() as sess:
             # Calculate batch loss and accuracy
             loss, acc = sess.run([loss_op, accuracy], feed_dict={X: batch_x,
                                                                  Y: batch_y})
-            # datetime.date.today()+
-            print(" - Step " + str(step) + ", Minibatch Loss= " + \
+
+            print(str(datetime.datetime.now())+" - Step " + str(step) + ", Minibatch Loss= " + \
                   "{:.4f}".format(loss) + ", Training Accuracy= " + \
-                  "{:.3f}".format(acc))
+                  "{:.3f}".format(acc)+ \
+                  ", record:"+str(dataLoader.getCurrentDirName()) + " sample:"+str(dataLoader.getSampleFrom()))
 
     print("Optimization Finished!")
 
     # Calculate accuracy
     #test_data = testX
     #test_label = testY
+    #before starting test move to the next record
+    #to-do: separate in test folder
+    dataLoader.next_record_directory()
     test_data, test_label = dataLoader.train_next_batch(batch_size, timesteps)
     test_data = rnn_data(test_data, timesteps, labels=False)
-
     print("Testing Accuracy:", \
           sess.run(accuracy, feed_dict={X: test_data, Y: test_label}))
