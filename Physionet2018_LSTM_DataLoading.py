@@ -18,7 +18,8 @@ import hdf5storage
 
 
 class Pysionet2018_LSTM_DataLoading:
-
+    currentSignalRecord =  []
+    currentArousalRecord = []
     def __init__(self, baseDirName="M:\\", currentDirName="none"):
         self.baseDirName = baseDirName
         self.currentDirName = currentDirName
@@ -28,6 +29,8 @@ class Pysionet2018_LSTM_DataLoading:
 
     def resetSampleFrom(self):
         self.sample_from = 0
+        self.currentSignalRecord = []
+        self.currentArousalRecord = []
 
     def getCurrentDirName(self):
         return self.currentDirName
@@ -58,6 +61,8 @@ class Pysionet2018_LSTM_DataLoading:
                 else:
                     if (self.currentDirName == dirs and trovata == 0): trovata = 1
         print("Cambio record file: " + training_directory + "\\" + self.currentDirName)
+        self.currentSignalRecord = []
+        self.currentArousalRecord = []
         return self.currentDirName
 
     '''
@@ -95,16 +100,19 @@ class Pysionet2018_LSTM_DataLoading:
         To extract signals from training dataset
         @filename: filepath of the subject
         """
-        # reading arousal datafile, goal of the challenge
-        arousalDataRecord = hdf5storage.loadmat(filename + '-arousal.mat')
-        arousalArray = arousalDataRecord["data"][0][0][0][0]
+        if(self.currentArousalRecord == []):
+            # reading arousal datafile, goal of the challenge
+            self.currentArousalRecord = hdf5storage.loadmat(filename + '-arousal.mat')
+            print("Leggo da disco "+filename+ '-arousal.mat')
+        arousalArray = self.currentArousalRecord["data"][0][0][0][0]
         # print("Arousal File " + str(filename) + " total size: " + str(arousalArray.size))
         signals_size = arousalArray.size
+        signals_size2= signals_size
         # limit Array to requested size
         if (signals_max_size != 0): signals_size = min(signals_size, signals_max_size)
         # I discard firsts depth size
         arousalArray = arousalArray[sample_from + depth:sample_from + signals_size]
-        # print("Arousal File " + str(filename) + " sample size: " + str(signals_size))
+        #print("Arousal File " + str(filename) + " sample size: " + str(signals_size))
 
         arousalLabels = np.zeros((signals_size - depth, 3))
         i = 0
@@ -116,10 +124,15 @@ class Pysionet2018_LSTM_DataLoading:
         # sampling a file from training dataset
         # ['F3-M2', 'F4-M1', 'C3-M2', 'C4-M1', 'O1-M2', 'O2-M1', 'E1-M2', 'Chin1-Chin2', 'ABD', 'CHEST', 'AIRFLOW', 'SaO2', 'ECG']
         # (channel 12 = ECG)
-        signals, fields = wfdb.rdsamp(filename, sampfrom=sample_from, sampto=sample_from + signals_size,
-                                      channels=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
-        # print("Signal Fields " + str(fields))
-        return signals, arousalLabels, signals_size
+        if(self.currentSignalRecord == []):
+          #  signals, fields = wfdb.rdsamp(filename, sampfrom=sample_from, sampto=sample_from + signals_size,
+           #                           channels=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
+            print("Leggo da disco "+filename)
+            signals, fields = wfdb.rdsamp(filename, sampfrom=0, sampto=0 + signals_size2,channels=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
+            self.currentSignalRecord=signals
+            #print("Signal Fields " + str(fields))
+        signals=self.currentSignalRecord[sample_from:sample_from + signals_size]
+        return signals, arousalLabels, signals_size2
 
     '''
         function to extract next batch-size dimension list o arrays
@@ -132,7 +145,8 @@ class Pysionet2018_LSTM_DataLoading:
         signals, arousalLabels, signals_size = self.extractSignal(filename, self.sample_from, batch_size, depth)
         # per ora campiono solo i primi 4 milioni di valori per record
         # print("Sample from: "+str(self.sample_from))
-        if self.sample_from > 4000000:
+       # if self.sample_from > 4000000:
+        if self.sample_from + (2*batch_size) > signals_size:
             self.next_record_directory()
         else:
             self.sample_from = self.sample_from + batch_size

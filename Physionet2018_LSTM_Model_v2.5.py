@@ -68,14 +68,15 @@ def RNN(x, weights, biases):
 
 # Training Parameters
 learning_rate = 0.001
-training_steps =  60000
+training_steps =  6000
+test_steps = 1000
 batch_size = 1000
 display_step = 100
 
 # Network Parameters
 num_input =  13  # 28  # number of channels
 timesteps = 5  # timesteps: depth (la profondità dei segnali precedenti passata alla lstm
-num_hidden = 2000  # hidden layer num of features 125
+num_hidden = 250  # hidden layer num of features 125
 num_classes = 3  # +1: Designates arousal regions; 0: Designates non-arousal regions;-1: Designates regions that will not be scored
 
 print("################################")
@@ -138,8 +139,8 @@ with tf.Session() as sess:
         batch_x, batch_y = dataLoader.train_next_batch(batch_size, timesteps)
         #reformat batch_x in proper shape
         batch_x = rnn_data(batch_x, timesteps, labels=False)
-       # print("\n\ndopo rnn_data" + str(batch_x))
-        #print("size dopo rnn_data" + str(batch_x.size))
+        #print("\n\nX dopo rnn_data" + str(batch_x))
+        #print("size X dopo rnn_data" + str(batch_x.size))
         #print("size Y" + str(batch_y))
         #print("size Y" +str(batch_y.size))
         # Run optimization op (backprop)
@@ -162,10 +163,15 @@ with tf.Session() as sess:
     #before starting test move to the next record
     #to-do: separate in test folder
     dataLoader.next_record_directory()
-    test_data, test_label = dataLoader.train_next_batch(batch_size*100, timesteps)
-    test_data = rnn_data(test_data, timesteps, labels=False)
-    print("Testing Accuracy:", \
-          sess.run(accuracy, feed_dict={X: test_data, Y: test_label}))
+    for step in range(1, test_steps + 1):
+        test_data, test_label = dataLoader.train_next_batch(batch_size*100, timesteps)
+        test_data = rnn_data(test_data, timesteps, labels=False)
+        #print("Testing Accuracy:", sess.run(accuracy, feed_dict={X: test_data, Y: test_label}))
+        acc = sess.run(accuracy, feed_dict={X: test_data, Y: test_label})
+        if step % display_step == 0 or step == 1:
+            print(str(datetime.datetime.now()) + " - Step " + str(step)+ ", Testing Accuracy= " + \
+                  "{:.3f}".format(acc) + \
+                  ", record:" + str(dataLoader.getCurrentDirName()) + " sample:" + str(dataLoader.getSampleFrom()))
 
 dtFineElaborazione = datetime.datetime.now()
 elapsedTime= dtFineElaborazione - dtInizioElaborazione
