@@ -20,7 +20,8 @@ from Physionet2018_LSTM_DataLoading import *
 import numpy as np
 import pandas as pd
 import datetime
-
+import shutil
+from logger import Logger as Logger
 
 import os
 #remove warnings about system configuration
@@ -67,9 +68,9 @@ def RNN(x, weights, biases):
     return tf.matmul(outputs[-1], weights['out']) + biases['out']
 
 # Training Parameters
-learning_rate = 0.001
-training_steps =  20000
-test_steps = 1000
+learning_rate = 0.003
+training_steps =  100000
+test_steps = 5000
 batch_size = 1000
 display_step = 100
 
@@ -84,6 +85,7 @@ print("###### SESSION PARAMETERS ######")
 print("################################")
 print("learning_rate",learning_rate)
 print("training_steps",training_steps)
+print("test_steps",test_steps)
 print("batch_size",batch_size)
 print("display_step",display_step)
 print("num_input",num_input)
@@ -125,8 +127,16 @@ dtInizioElaborazione =  datetime.datetime.now()
 print(str(datetime.datetime.now()) + " Inizio Elaborazione")
 
 dataLoader = Pysionet2018_LSTM_DataLoading("C:\\PHYSIONET\\")
-dataLoader.next_record_directory()
-dataLoader.next_record_directory()
+#dataLoader.next_record_directory()
+#dataLoader.next_record_directory()
+
+
+#preparing data for tensorboard
+path="/tmp/Physionet2018_LSTM_2_6"
+writer = tf.summary.FileWriter(path)
+logger = Logger(path)
+#ripulisce la cartella di log
+shutil.rmtree(path + "/*", ignore_errors=True)
 
 # Start training
 with tf.Session() as sess:
@@ -149,7 +159,8 @@ with tf.Session() as sess:
             # Calculate batch loss and accuracy
             loss, acc = sess.run([loss_op, accuracy], feed_dict={X: batch_x,
                                                                  Y: batch_y})
-
+            logger.log_histogram('training accuracy', acc, step)
+            logger.log_histogram('training loss', loss, step)
             print(str(datetime.datetime.now())+" - Step " + str(step) + ", Minibatch Loss= " + \
                   "{:.4f}".format(loss) + ", Training Accuracy= " + \
                   "{:.3f}".format(acc)+ \
@@ -169,6 +180,7 @@ with tf.Session() as sess:
         #print("Testing Accuracy:", sess.run(accuracy, feed_dict={X: test_data, Y: test_label}))
         acc = sess.run(accuracy, feed_dict={X: test_data, Y: test_label})
         if step % display_step == 0 or step == 1:
+            logger.log_histogram('test accuracy', acc, step)
             print(str(datetime.datetime.now()) + " - Step " + str(step)+ ", Testing Accuracy= " + \
                   "{:.3f}".format(acc) + \
                   ", record:" + str(dataLoader.getCurrentDirName()) + " sample:" + str(dataLoader.getSampleFrom()))
@@ -176,3 +188,6 @@ with tf.Session() as sess:
 dtFineElaborazione = datetime.datetime.now()
 elapsedTime= dtFineElaborazione - dtInizioElaborazione
 print(str(datetime.datetime.now()) + " Elapsed Time "+ str(elapsedTime))
+
+print("Launching Tensorboard...")
+os.system('tensorboard --logdir=' + path)
