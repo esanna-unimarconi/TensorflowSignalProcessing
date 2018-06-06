@@ -1,15 +1,13 @@
 """
 Pysionet2018_LSTM_DataLoading
-
 @description: A Class with function to read Physionet 2018 Challenge Dataset
-
 @author: Enrico Sanna - Unimarconi
 @project: hhttps://github.com/esanna-unimarconi/TensorflowSignalProcessing/
 @create-date:18/04/2018
 """
 import os
 import numpy as np
-# librart to read Matlab v4 Files
+# library to read Matlab v4 Files
 # http://wfdb.readthedocs.io/en/latest/wfdb.html
 import wfdb
 # library to easy manipulate Matlab v7.3 Files (HDF5), base on h5py.
@@ -43,7 +41,7 @@ class Pysionet2018_LSTM_DataLoading:
     '''
 
     def next_record_directory(self):
-        training_directory = str(self.baseDirName + "training\\")
+        training_directory = str(self.baseDirName + "training/")
         trovata = 0
         for dirs in os.listdir(training_directory):
             if (not self.currentDirName.startswith("tr")):
@@ -60,7 +58,7 @@ class Pysionet2018_LSTM_DataLoading:
                     break
                 else:
                     if (self.currentDirName == dirs and trovata == 0): trovata = 1
-        print("Cambio record file: " + training_directory + "\\" + self.currentDirName)
+        print("Cambio record file: " + training_directory + "/" + self.currentDirName)
         self.currentSignalRecord = []
         self.currentArousalRecord = []
         return self.currentDirName
@@ -139,7 +137,7 @@ class Pysionet2018_LSTM_DataLoading:
     '''
 
     def train_next_batch(self, batch_size, depth):
-        filename = self.baseDirName + "training\\" + self.currentDirName + "\\" + self.currentDirName
+        filename = self.baseDirName + "training/" + self.currentDirName + "/" + self.currentDirName
         # self.printArousalFile( filename, self.sample_from, 4000000, 10)
         # exit(0)
         signals, arousalLabels, signals_size = self.extractSignal(filename, self.sample_from, batch_size, depth)
